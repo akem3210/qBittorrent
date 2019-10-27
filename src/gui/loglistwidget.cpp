@@ -78,6 +78,12 @@ void LogListWidget::keyPressEvent(QKeyEvent *event)
 
 void LogListWidget::appendLine(const QString &line, const Log::MsgType &type)
 {
+    //akem >>
+    if(line.toStdString().find("akem.clear") != std::string::npos){
+        LogListWidget::clear();
+    }
+    //akem <<
+
     // We need to use QLabel here to support rich text
     auto *lbl = new QLabel(line);
     lbl->setTextFormat(Qt::RichText);

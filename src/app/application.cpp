@@ -61,6 +61,17 @@
 #endif // Q_OS_MACOS
 #endif
 
+// akem >>
+#include <chrono>	// sleep_for
+#include <unistd.h> //sleep
+#include <thread>
+#include <fstream>
+
+#include <QHostAddress>
+#include <QNetworkAddressEntry>
+#include <QNetworkInterface>
+// akem <<
+
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrenthandle.h"
 #include "base/exceptions.h"
@@ -504,6 +515,94 @@ void Application::processParams(const QStringList &params)
     }
 }
 
+// akem >>
+void checkInterface()
+{
+/*
+        QString networkInterface() const;
+        void setNetworkInterface(const QString &interface);
+        QString networkInterfaceName() const;
+        void setNetworkInterfaceName(const QString &name);
+        QString networkInterfaceAddress() const;
+        void setNetworkInterfaceAddress(const QString &address);
+*/
+
+    QString wantedInterfaceName = "";
+        
+    // Get interface name from file "AUTOBIND_INTERFACE"
+    std::ifstream file("./AUTOBIND_INTERFACE");
+    if (file.is_open()) {
+        std::string line;
+        getline(file, line);
+        wantedInterfaceName = QString::fromUtf8(line.c_str());
+        file.close();
+    }
+    else {
+        LogMsg("AUTOBIND:Cannot open file \"AUTOBIND_INTERFACE\" to get interface name.");
+    }
+
+    if(wantedInterfaceName == "") {
+        wantedInterfaceName = "tun0";
+    }
+
+    int clearLogWindowCounter = 0;
+    while(true){
+        ////BitTorrent::Session::instance()->isDHTEnabled();
+
+////        LogMsg("AUTOBIND:Checking interface...");
+        
+        QString currentInterface = BitTorrent::Session::instance()->networkInterface();
+        QString currentInterfaceName = BitTorrent::Session::instance()->networkInterfaceName(); // WARNING THIS CAN BE EMPTY FOR TUN0, USE CURRENTINTERFACE INSTEAD
+        QString currentInterfaceAddress = BitTorrent::Session::instance()->networkInterfaceAddress();
+/*
+        LogMsg("AUTOBIND:CurrentInterface/IName/Address: \"" + currentInterface + "\"" + ",\"" 
+                                                + currentInterfaceName + "\"" + ",\"" 
+                                                + currentInterfaceAddress + "\"");
+*/   
+        if(currentInterface != wantedInterfaceName){
+            LogMsg("AUTOBIND:SETTING INTERFACE TO: \"" + wantedInterfaceName + "\"");
+            BitTorrent::Session::instance()->setNetworkInterface(wantedInterfaceName);
+            // Not needed to set the interface name
+            //BitTorrent::Session::instance()->setNetworkInterfaceName(wantedInterfaceName);
+        }
+
+        const QNetworkInterface networkIFace = QNetworkInterface::interfaceFromName(wantedInterfaceName);
+        const QList<QNetworkAddressEntry> addresses = networkIFace.addressEntries();
+        QHostAddress ip;
+        QString ipString;
+        if(addresses.size() > 0){
+            //QAbstractSocket::NetworkLayerProtocol protocol;
+            for (const QNetworkAddressEntry &entry : addresses) {
+                ip = entry.ip();
+                ipString = ip.toString();
+                //protocol = ip.protocol();
+                //LogMsg("AUTOBIND:Found IP: \"" + ipString + "\"");
+                if(currentInterfaceAddress != ipString){
+                    LogMsg("AUTOBIND:SETTING FIRST IP FOUND: \"" + ipString + "\"");
+                    BitTorrent::Session::instance()->setNetworkInterfaceAddress(ipString);
+                    break;
+                }
+                break;
+            }
+        }
+/* 
+        else {
+                LogMsg("AUTOBIND:Error no IP found for interface: \"" + wantedInterfaceName + "\"");
+        }
+*/        
+        sleep(30);
+        //std::this_thread::sleep_for(std::chrono::seconds(30));
+        //std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(30));
+        
+        clearLogWindowCounter += 1;
+        if (clearLogWindowCounter > 300) {
+            clearLogWindowCounter = 0;
+            LogMsg("akem.clear"); // another hack to clear the log window - see gui/loglistwidget.cpp
+        }
+    }
+}
+// akem <<
+
 int Application::exec(const QStringList &params)
 {
     Net::ProxyConfigurationManager::initInstance();
@@ -573,6 +672,8 @@ int Application::exec(const QStringList &params)
 
     // Now UI is ready to process signals from Session
     BitTorrent::Session::instance()->startUpTorrents();
+
+    std::thread t1(checkInterface);
 
     m_paramsQueue = params + m_paramsQueue;
     if (!m_paramsQueue.isEmpty()) {
