@@ -546,7 +546,7 @@ void checkInterface()
     }
 
     int clearLogWindowCounter = 0;
-    while(true){
+    while(quitThread == false){
         ////BitTorrent::Session::instance()->isDHTEnabled();
 
 ////        LogMsg("AUTOBIND:Checking interface...");
@@ -590,12 +590,12 @@ void checkInterface()
                 LogMsg("AUTOBIND:Error no IP found for interface: \"" + wantedInterfaceName + "\"");
         }
 */        
-        sleep(30);
+        sleep(10);
         //std::this_thread::sleep_for(std::chrono::seconds(30));
         //std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(30));
         
         clearLogWindowCounter += 1;
-        if (clearLogWindowCounter > 300) {
+        if (clearLogWindowCounter > 600) {
             clearLogWindowCounter = 0;
             LogMsg("akem.clear"); // another hack to clear the log window - see gui/loglistwidget.cpp
         }
@@ -680,7 +680,15 @@ int Application::exec(const QStringList &params)
         processParams(m_paramsQueue);
         m_paramsQueue.clear();
     }
-    return BaseApplication::exec();
+    // akem >>
+    int ret = BaseApplication::exec();
+    
+    quitThread = true;
+    
+    t1.join();
+    
+    return ret;
+    // akem <<
 }
 
 bool Application::isRunning()

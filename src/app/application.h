@@ -57,6 +57,10 @@ class WebUI;
 class ApplicationInstanceManager;
 class FileLogger;
 
+// akem >>
+bool quitThread = false;
+// akem <<
+
 namespace BitTorrent
 {
     class TorrentHandle;
