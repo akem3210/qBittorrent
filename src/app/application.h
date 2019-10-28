@@ -58,7 +58,8 @@ class ApplicationInstanceManager;
 class FileLogger;
 
 // akem >>
-bool quitThread = false;
+////bool quitThread = false;
+std::atomic<bool> quitThread = false;
 // akem <<
 
 namespace BitTorrent
