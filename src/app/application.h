@@ -29,6 +29,10 @@
 
 #pragma once
 
+// akem >>
+#include <atomic>
+// akem <<
+
 #include <QPointer>
 #include <QStringList>
 #include <QTranslator>
@@ -59,7 +63,8 @@ class FileLogger;
 
 // akem >>
 ////bool quitThread = false;
-std::atomic<bool> quitThread = false;
+//std::atomic<bool> quitThread = false;
+std::atomic_bool quitThread(false);
 // akem <<
 
 namespace BitTorrent
